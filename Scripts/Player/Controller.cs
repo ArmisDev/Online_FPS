@@ -7,12 +7,12 @@ namespace ArmisDev
     [RequireComponent(typeof(CharacterController))]
     public class Controller : MonoBehaviour
     {
+        //Character Section
         [Header("Controller Attributes")]
         [SerializeField] CharacterController characterController;
         [SerializeField] private float _walkSpeed = 0.5f;
-        [SerializeField] Transform pivotTrans;
-        [SerializeField] Transform camTrans;
 
+        //Online Section
         [Header("Online Attributes")]
         public bool isLocal;
 
@@ -26,6 +26,17 @@ namespace ArmisDev
         [HideInInspector]
         public float _MouseY;
         #endregion
+
+        //Camera Section
+        [Header("Camera Parameters")]
+        [SerializeField] private float _rotationSpeed;
+        [SerializeField] Transform pivotTrans;
+        [SerializeField] Transform camTrans;
+
+        [HideInInspector]
+        public float _lookAngle;
+        [HideInInspector]
+        public float _tiltAngle;
 
         private void Start()
         {
@@ -41,7 +52,7 @@ namespace ArmisDev
             _MouseY = Input.GetAxis("Mouse Y");
         }
 
-        void HandleMovement(float delta)
+        void HandleMovement(float _delta)
         {
             /* Here we create a Vector 3 called direction and apply our transforms forward direction to it
              * we then take multiply our _vertical input float and multiply our forward direction by this value.
@@ -67,15 +78,60 @@ namespace ArmisDev
             }
 
             //Finally we move our character using the desiredDir vector and multiply it by our delta float (aka Time.deltaTime - See Update) which is divied by our _walkSpeed
-            characterController.Move(desiredDir * (delta / _walkSpeed));
+            characterController.Move(desiredDir * (_delta / _walkSpeed));
+        }
+
+        void HandleRotation(float _delta)
+        {
+            //Here we grab the _lookAngle float and subscribe it to our _MouseX input which we then multiply by our _delta (aka Time.deltaTime) and our _rotationSpeed
+            _lookAngle += _MouseX * (_delta * _rotationSpeed);
+
+            //Creating new euler for our camera rotation
+            Vector3 camEulers = Vector3.zero;
+            //Take our _lookAngle (now holds our inputs) and applies it to our camEulers Y axis
+            camEulers.y = _lookAngle;
+            //Rotates our character along Y axis (technically x axis).
+            transform.eulerAngles = camEulers;
+
+            /* Here we take our _tiltAngle float and subscribe it to our _MouseY float which is then multiplied by by our _delta (aka Time.deltaTime) and our _rotationSpeed
+             * We want to use -= because we want the _MouseY to be inverted. This means Up on mouse is down, and vice versa. 
+             * Basically it makes the X axis rotation for camera feel natural
+             */
+            _tiltAngle -= _MouseY * (_delta * _rotationSpeed);
+
+            _tiltAngle = Mathf.Clamp(_tiltAngle, -45, 45);
+
+            //Here we are creating a new euler for our tiltangle. 
+            Vector3 tiltEuler = Vector3.zero;
+            //Apply our _tiltAngle value to our tiltEuler Vector
+            tiltEuler.x = _tiltAngle;
+            //Grabs the local euler angle of our pivotTrans transform (aka the transforms degrees relative to the parent object) and applies it to our tiltEuler
+            pivotTrans.localEulerAngles = tiltEuler;
+        }
+
+        private void FixedUpdate()
+        {
+            float _delta = Time.fixedDeltaTime;
+            HandleMovement(_delta);
+            HandleRotation(_delta);
         }
 
         private void Update()
         {
+            //Checks & Sets
             if (!isLocal) return;
+            if(Input.GetKeyDown(KeyCode.Escape))
+            {
+                if (Cursor.lockState == CursorLockMode.Locked)
+                    Cursor.lockState = CursorLockMode.None;
+                else
+                    Cursor.lockState = CursorLockMode.Locked;
 
+                Cursor.visible = !Cursor.visible;
+            }
+
+            //Function Calls
             HandleInput();
-            HandleMovement(Time.deltaTime);
         }
     }
 }
