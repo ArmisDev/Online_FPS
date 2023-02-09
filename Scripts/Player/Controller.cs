@@ -1,8 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Armis.Items;
 
-namespace ArmisDev
+namespace Armis
 {
     [RequireComponent(typeof(CharacterController))]
     public class Controller : MonoBehaviour
@@ -33,6 +34,11 @@ namespace ArmisDev
         [SerializeField] Transform pivotTrans;
         [SerializeField] Transform camTrans;
 
+        //Shooting section
+        [Header("Shooting Parameters")]
+        public bool isShooting = true;
+        public RuntimeItem currentWeapon;
+
         [HideInInspector]
         public float _lookAngle;
         [HideInInspector]
@@ -40,10 +46,10 @@ namespace ArmisDev
 
         private void Start()
         {
-            Init();
+            Init("TestWeapon");
         }
 
-        public void Init()
+        public void Init(string weaponID)
         {
             characterController = GetComponent<CharacterController>();
 
@@ -52,8 +58,11 @@ namespace ArmisDev
 
             if(isLocal)
             {
-                SA.Utilities.Crosshair.singleton.Init(this);
+                Armis.Utilities.Crosshair.singleton.Init(this);
             }
+
+            currentWeapon = ItemManager.singleton.CreateItemInstance(weaponID);
+            currentWeapon.Reload();
         }
 
         void HandleInput()
@@ -63,6 +72,8 @@ namespace ArmisDev
             _vertical = Input.GetAxis("Vertical");
             _MouseX = Input.GetAxis("Mouse X");
             _MouseY = Input.GetAxis("Mouse Y");
+
+            isShooting = Input.GetMouseButton(0);
         }
 
         void HandleMovement(float _delta)
@@ -122,6 +133,23 @@ namespace ArmisDev
             pivotTrans.localEulerAngles = tiltEuler;
         }
 
+        void HandleShooting()
+        {
+            if(isShooting)
+            {
+                if(currentWeapon.canFire())
+                {
+                    currentWeapon.Shoot();
+                 /*Here we are saying that if we are shooting then call the RaycastBullet function in our ballistics class
+                 * This then takes three parameters the orgin of the shot, the direction of the shot
+                 * and we then make sure to feed our camera controller back to the function using "this".
+                 * Feeding the controller back to the RaycastBullet function is what actually enables this to be acted out on.
+                 */
+                    Ballistics.RaycastBullet(camTrans.position, camTrans.forward, this);
+                }
+            }
+        }
+
         private void FixedUpdate()
         {
             float _delta = Time.fixedDeltaTime;
@@ -145,6 +173,7 @@ namespace ArmisDev
 
             //Function Calls
             HandleInput();
+            HandleShooting();
         }
     }
 }
