@@ -40,7 +40,20 @@ namespace ArmisDev
 
         private void Start()
         {
+            Init();
+        }
+
+        public void Init()
+        {
             characterController = GetComponent<CharacterController>();
+
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+
+            if(isLocal)
+            {
+                SA.Utilities.Crosshair.singleton.Init(this);
+            }
         }
 
         void HandleInput()
